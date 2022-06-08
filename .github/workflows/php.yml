@@ -1,0 +1,49 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: PHP CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  process-brussels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: EqualStreetNames/equalstreetnames
+          submodules: true
+      - uses: actions/checkout@v3
+        with:
+          path: process
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+        working-directory: process
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+        working-directory: process
+      - name: Run update
+        run: composer run update-data -- --city=belgium/brussels
+        working-directory: process
+
+  phpcs:
+    name: PHP_CodeSniffer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: composer install --prefer-dist --no-progress
+      - name: Configure PHPCS
+        run: ./vendor/squizlabs/php_codesniffer/bin/phpcs --config-set ignore_warnings_on_exit 1
+      - run: composer run-script cs-check
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: composer install --prefer-dist --no-progress
+      - run: composer run-script analyze
