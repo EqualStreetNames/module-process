@@ -175,6 +175,7 @@ class WikidataCommand extends AbstractCommand
     /**
      * Send request and store result.
      * Display warning if the Wikidata item doesn't exist or if the process can't download the Wikidate item.
+     * @see https://www.mediawiki.org/wiki/Wikibase/EntityData
      *
      * @param string $identifier Wikidata item identifier.
      * @param Element $element OpenStreetMap element (relation/way/node).
@@ -190,7 +191,13 @@ class WikidataCommand extends AbstractCommand
 
         try {
             $client = new \GuzzleHttp\Client();
-            $client->request('GET', $url, ['sink' => $path]);
+            $client->request('GET', $url, [
+                'headers' => [
+                    'User-Agent' => 'EqualStreetNames (https://equalstreetnames.org)',
+                    'Accept' => 'application/json',
+                ],
+                'sink' => $path,
+            ]);
         } catch (BadResponseException $exception) {
             if (file_exists($path)) {
                 unlink($path);
@@ -204,6 +211,7 @@ class WikidataCommand extends AbstractCommand
                     $warnings[] = sprintf('<warning>Error while fetching Wikidata item %s for %s(%d): %s.</warning>', $identifier, $element->type, $element->id, $exception->getMessage());
                     break;
             }
+            print_r($warnings);
         }
     }
 }
