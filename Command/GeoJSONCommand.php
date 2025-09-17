@@ -395,7 +395,7 @@ class GeoJSONCommand extends AbstractCommand
             $_person = array_unique(array_column($detailsEtymology, 'person'));
             $_gender = array_unique(array_column($detailsEtymology, 'gender'));
 
-            $genderEtymology = (count($_person) === 1 && current($_person) === true) ? (count($_gender) === 1 ? current($_gender) : '+') : false;
+            $genderEtymology = (count($_person) === 1 && current($_person) === true) ? (count($_gender) === 1 ? current($_gender) : '+') : '-';
 
             if (count($detailsEtymology) === 1) {
                 $detailsEtymology = current($detailsEtymology);
@@ -433,7 +433,7 @@ class GeoJSONCommand extends AbstractCommand
                         $_person = array_unique(array_column($detailsWikidata, 'person'));
                         $_gender = array_unique(array_column($detailsWikidata, 'gender'));
 
-                        $genderWikidata = (count($_person) === 1 && current($_person) === true) ? (count($_gender) === 1 ? current($_gender) : '+') : false;
+                        $genderWikidata = (count($_person) === 1 && current($_person) === true) ? (count($_gender) === 1 ? current($_gender) : '+') : '-';
 
                         if (count($detailsWikidata) === 1) {
                             $detailsWikidata = current($detailsWikidata);
