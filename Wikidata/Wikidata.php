@@ -92,7 +92,7 @@ class Wikidata
      * @param Entity $entity
      * @param string[] $languages
      *
-     * @return null|array<string,string>
+     * @return null|array<string,object>
      */
     public static function extractNicknames($entity, array $languages): ?array
     {
@@ -101,10 +101,12 @@ class Wikidata
         $claims = $entity->claims->P1449 ?? [];
 
         foreach ($claims as $value) {
-            $language = $value->mainsnak->datavalue->value->language; // @phpstan-ignore-line
+            /** @var \stdClass */
+            $mainValue = $value->mainsnak->datavalue->value; // @phpstan-ignore-line
+            $language = $mainValue->language;
 
             if (in_array($language, $languages, true)) {
-                $nicknames[$language] = $value->mainsnak->datavalue->value; // @phpstan-ignore-line
+                $nicknames[$language] = $mainValue;
             }
         }
 
