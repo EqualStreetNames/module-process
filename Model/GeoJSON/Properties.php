@@ -14,7 +14,7 @@ class Properties implements JsonSerializable
     /** @var null|Details|Details[] */
     public $details;
 
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return [
         'name' => $this->name,
