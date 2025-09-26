@@ -42,8 +42,9 @@ class Wikidata
         $labels = [];
 
         foreach ($languages as $language) {
-            if (isset($entity->labels->{$language})) { // @phpstan-ignore-line
-                $labels[$language] = $entity->labels->{$language}; // @phpstan-ignore-line
+            $label = $entity->labels->{$language} ?? $entity->labels->mul ?? null; // @phpstan-ignore-line
+            if ($label !== null) {
+                $labels[$language] = $label;
             }
         }
 
