@@ -11,7 +11,7 @@ class Details
     public ?array $labels;
     /** @var null|array<string,LanguageValue> */
     public ?array $descriptions;
-    /** @var array<string,string> */
+    /** @var array<string,object> */
     public ?array $nicknames;
     public ?int $birth;
     public ?int $death;

@@ -76,10 +76,11 @@ class CalendarCommand extends Command
                         }
                         $time = sprintf('%02s:%02s', $parts[1], $parts[0]);
 
-                        $duplicates = array_filter($data, function ($row) use ($day, $time, $cron): bool {
-                            return $row[4]->getNextRunDate()->format('c') === $cron->getNextRunDate()->format('c');
-                            // return ($row[1] === $day && $row[3] === $time) || ($row[1] === '*' && $row[3] === $time) || ($day === '*' && $row[3] === $time);
-                        });
+                        $duplicates = array_filter(
+                            $data,
+                            fn (array $row): bool => $row[4]->getNextRunDate()->format('c') === $cron->getNextRunDate()->format('c')
+                            // fn (array $row): bool => ($row[1] === $day && $row[3] === $time) || ($row[1] === '*' && $row[3] === $time) || ($day === '*' && $row[3] === $time)
+                        );
                         $warning = count($duplicates) > 0 ? '⚠ Duplicate' : null;
 
                         $data[] = [
@@ -95,17 +96,18 @@ class CalendarCommand extends Command
                 }
             }
 
-            $nextRun = array_map(function ($row) {
-                return $row[4]->getNextRunDate()->format('c');
-            }, $data);
+            $nextRun = array_map(
+                fn (array $row): string => $row[4]->getNextRunDate()->format('c'),
+                $data
+            );
             array_multisort(
                 $nextRun,
                 SORT_ASC,
                 $data
             );
 
-            $display = array_map(function ($row) {
-                return [
+            $display = array_map(
+                fn (array $row): array => [
                     $row[0],
                     $row[1],
                     $row[2],
@@ -113,8 +115,9 @@ class CalendarCommand extends Command
                     $row[4]->getExpression(),
                     $row[4]->getNextRunDate()->format('d M Y H:i'),
                     $row[5],
-                ];
-            }, $data);
+                ],
+                $data
+            );
 
             $table = new Table($output);
             $table->setHeaders(['City', 'Day of week', 'Day of month', 'Time', 'Cron', 'Next run', '']);
