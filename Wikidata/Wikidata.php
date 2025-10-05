@@ -42,7 +42,7 @@ class Wikidata
         $labels = [];
 
         foreach ($languages as $language) {
-            $label = $entity->labels->{$language} ?? $entity->labels->mul ?? null; // @phpstan-ignore-line
+            $label = $entity->labels->{$language} ?? $entity->labels->mul ?? null; // @phpstan-ignore property.notFound,property.dynamicName
             if ($label !== null) {
                 $labels[$language] = $label;
             }
@@ -62,8 +62,8 @@ class Wikidata
         $descriptions = [];
 
         foreach ($languages as $language) {
-            if (isset($entity->descriptions->{$language})) { // @phpstan-ignore-line
-                $descriptions[$language] = $entity->descriptions->{$language}; // @phpstan-ignore-line
+            if (isset($entity->descriptions->{$language})) { // @phpstan-ignore property.dynamicName
+                $descriptions[$language] = $entity->descriptions->{$language}; // @phpstan-ignore property.dynamicName
             }
         }
 
@@ -81,8 +81,8 @@ class Wikidata
         $sitelinks = [];
 
         foreach ($languages as $language) {
-            if (isset($entity->sitelinks->{$language . 'wiki'})) { // @phpstan-ignore-line
-                $sitelinks[$language . 'wiki'] = $entity->sitelinks->{$language . 'wiki'}; // @phpstan-ignore-line
+            if (isset($entity->sitelinks->{$language . 'wiki'})) { // @phpstan-ignore property.dynamicName
+                $sitelinks[$language . 'wiki'] = $entity->sitelinks->{$language . 'wiki'}; // @phpstan-ignore property.dynamicName
             }
         }
 
@@ -103,7 +103,7 @@ class Wikidata
 
         foreach ($claims as $value) {
             /** @var \stdClass */
-            $mainValue = $value->mainsnak->datavalue->value; // @phpstan-ignore-line
+            $mainValue = $value->mainsnak->datavalue->value; // @phpstan-ignore property.notFound
             $language = $mainValue->language;
 
             if (in_array($language, $languages, true)) {
@@ -127,13 +127,13 @@ class Wikidata
         $claims = $entity->claims->P138 ?? [];
 
         foreach ($claims as $value) {
-            $endTime = $value->qualifiers->P582[0]->datavalue->value->time ?? null; // @phpstan-ignore-line
+            $endTime = $value->qualifiers->P582[0]->datavalue->value->time ?? null; // @phpstan-ignore property.notFound
             if (!is_null($endTime) && $endTime < date('c')) {
                 continue;
             }
 
             /** @var string */
-            $id = $value->mainsnak->datavalue->value->id; // @phpstan-ignore-line
+            $id = $value->mainsnak->datavalue->value->id; // @phpstan-ignore property.notFound
 
             $identifiers[] = $id;
         }
@@ -146,7 +146,7 @@ class Wikidata
      */
     public static function extractDateOfBirth($entity): ?string
     {
-        return isset($entity->claims->P569) ? $entity->claims->P569[0]->mainsnak->datavalue->value->time ?? null : null; // @phpstan-ignore-line
+        return isset($entity->claims->P569) ? $entity->claims->P569[0]->mainsnak->datavalue->value->time ?? null : null; // @phpstan-ignore property.notFound
     }
 
     /**
@@ -154,7 +154,7 @@ class Wikidata
      */
     public static function extractDateOfDeath($entity): ?string
     {
-        return isset($entity->claims->P570) ? $entity->claims->P570[0]->mainsnak->datavalue->value->time ?? null : null; // @phpstan-ignore-line
+        return isset($entity->claims->P570) ? $entity->claims->P570[0]->mainsnak->datavalue->value->time ?? null : null; // @phpstan-ignore property.notFound
     }
 
     /**
@@ -162,7 +162,7 @@ class Wikidata
      */
     public static function extractImage($entity): ?string
     {
-        return isset($entity->claims->P18) ? $entity->claims->P18[0]->mainsnak->datavalue->value ?? null : null; // @phpstan-ignore-line
+        return isset($entity->claims->P18) ? $entity->claims->P18[0]->mainsnak->datavalue->value ?? null : null; // @phpstan-ignore property.notFound
     }
 
     /**
@@ -170,7 +170,7 @@ class Wikidata
      */
     public static function extractGender($entity): ?string
     {
-        $identifier = isset($entity->claims->P21) ? $entity->claims->P21[0]->mainsnak->datavalue->value->id ?? null : null; // @phpstan-ignore-line
+        $identifier = isset($entity->claims->P21) ? $entity->claims->P21[0]->mainsnak->datavalue->value->id ?? null : null; // @phpstan-ignore property.notFound
 
         switch ($identifier) {
             case 'Q6581097': // male
@@ -212,7 +212,7 @@ class Wikidata
         }
 
         return array_map(function ($p) {
-            return $p->mainsnak->datavalue->value->id; // @phpstan-ignore-line
+            return $p->mainsnak->datavalue->value->id; // @phpstan-ignore property.notFound
         }, $property);
     }
 
