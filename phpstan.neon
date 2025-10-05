@@ -8,9 +8,8 @@ parameters:
         - process.php
     fileExtensions:
         - php
-    level: max
+    level: 8
     reportUnmatchedIgnoredErrors: true
-    # checkGenericClassInNonGenericObjectType: false
-    checkMissingIterableValueType: false
+    reportMaybesInPropertyPhpDocTypes: false
     ignoreErrors:
-        - '#Method App\\Command\\AbstractCommand::execute\(\) should return int but return statement is missing.#'
+        - identifier: missingType.iterableValue
