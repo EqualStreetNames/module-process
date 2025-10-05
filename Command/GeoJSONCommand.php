@@ -257,7 +257,7 @@ class GeoJSONCommand extends AbstractCommand
      * Extract details from CSV file.
      *
      * @param Element $object OpenStreetMap element (relation/way/node).
-     * @param array $warnings
+     * @param string[] $warnings
      * @return null|Details
      */
     private function extractDetailsFromCSV($object, array &$warnings = []): ?Details
@@ -331,22 +331,22 @@ class GeoJSONCommand extends AbstractCommand
      * @param string[] $warnings
      * @return null|string
      */
-    private function getGenderFromEvent($object, array &$warnings = []): ?string
-    {
-        if (!isset($this->event) || count($this->event) === 0) {
-            return null;
-        }
+    // private function getGenderFromEvent($object, array &$warnings = []): ?string
+    // {
+    //     if (!isset($this->event) || count($this->event) === 0) {
+    //         return null;
+    //     }
 
-        if (isset($object->tags->{'name:fr'}, $this->event[md5($object->tags->{'name:fr'})])) { // @phpstan-ignore-line
-            return $this->event[md5($object->tags->{'name:fr'})]; // @phpstan-ignore-line
-        } elseif (isset($object->tags->{'name:nl'}, $this->event[md5($object->tags->{'name:nl'})])) { // @phpstan-ignore-line
-            return $this->event[md5($object->tags->{'name:nl'})]; // @phpstan-ignore-line
-        } elseif (isset($object->tags->{'name'}, $this->event[md5($object->tags->{'name'})])) { // @phpstan-ignore-line
-            return $this->event[md5($object->tags->{'name'})]; // @phpstan-ignore-line
-        }
+    //     if (isset($object->tags->{'name:fr'}, $this->event[md5($object->tags->{'name:fr'})])) {
+    //         return $this->event[md5($object->tags->{'name:fr'})];
+    //     } elseif (isset($object->tags->{'name:nl'}, $this->event[md5($object->tags->{'name:nl'})])) {
+    //         return $this->event[md5($object->tags->{'name:nl'})];
+    //     } elseif (isset($object->tags->{'name'}, $this->event[md5($object->tags->{'name'})])) {
+    //         return $this->event[md5($object->tags->{'name'})];
+    //     }
 
-        return null;
-    }
+    //     return null;
+    // }
 
     /**
      * Create GeoJSON feature "property".
@@ -361,15 +361,15 @@ class GeoJSONCommand extends AbstractCommand
     private function createProperties($object, array &$warnings = []): Properties
     {
         $properties = new Properties();
-        $properties->name = $object->tags->name ?? null; // @phpstan-ignore-line
-        $properties->wikidata = $object->tags->wikidata ?? null; // @phpstan-ignore-line
+        $properties->name = $object->tags->name ?? null; // @phpstan-ignore property.notFound
+        $properties->wikidata = $object->tags->wikidata ?? null; // @phpstan-ignore property.notFound
         $properties->source = null;
         $properties->gender = null;
         $properties->details = null;
 
         // Try to extract information from `name:etymology:wikidata` tag in OpenStreetMap
-        if (isset($object->tags->{'name:etymology:wikidata'})) { // @phpstan-ignore-line
-            $idsEtymology = explode(';', $object->tags->{'name:etymology:wikidata'}); // @phpstan-ignore-line
+        if (isset($object->tags->{'name:etymology:wikidata'})) { // @phpstan-ignore property.notFound,property.dynamicName
+            $idsEtymology = explode(';', $object->tags->{'name:etymology:wikidata'}); // @phpstan-ignore property.dynamicName
             $idsEtymology = array_map('trim', $idsEtymology);
 
             $detailsEtymology = [];
@@ -403,7 +403,7 @@ class GeoJSONCommand extends AbstractCommand
         }
 
         // Try to extract information from `P138` (NamedAfter) property in Wikidata
-        if (isset($object->tags->wikidata)) {
+        if (isset($object->tags->wikidata)) { // @phpstan-ignore property.notFound
             if (preg_match('/^Q[0-9]+$/', $object->tags->wikidata) !== 1) {
                 $warnings[] = sprintf('Format of `wikidata` is invalid (%s) for %s(%d).', $object->tags->wikidata, $object->type, $object->id);
             } else {
@@ -475,12 +475,12 @@ class GeoJSONCommand extends AbstractCommand
         if (isset($genderEtymology, $detailsEtymology)) {
             // If `name:etymology:wikidata` tag is set, use it to extract details and determine gender.
             $properties->source = 'wikidata';
-            $properties->gender = $genderEtymology ? $genderEtymology : null;
+            $properties->gender = $genderEtymology;
             $properties->details = $detailsEtymology;
         } elseif (isset($genderWikidata, $detailsWikidata)) {
             // If `P138` (NamedAfter) property is set, use it to extract details and determine gender.
             $properties->source = 'wikidata';
-            $properties->gender = $genderWikidata ? $genderWikidata : null;
+            $properties->gender = $genderWikidata;
             $properties->details = $detailsWikidata;
         } elseif (!is_null($details = $this->extractDetailsFromCSV($object, $warnings))) {
             // If relation/way is defined in CSV file, use it to extract details and determine gender.
@@ -518,7 +518,7 @@ class GeoJSONCommand extends AbstractCommand
             /** @var Relation */ $object = $object;
             /** @var Member[] */ $members = [];
 
-            switch ($object->tags->type) {
+            switch ($object->tags->type) { // @phpstan-ignore property.nonObject
                 case 'associatedStreet':
                 case 'street':
                     $members = array_filter(
@@ -554,7 +554,7 @@ class GeoJSONCommand extends AbstractCommand
                     }
                     break;
                 default:
-                    $warnings[] = sprintf('<warning>Type "%s" is not supported (yet) for relation(%d).</warning>', $object->tags->type, $object->id);
+                    $warnings[] = sprintf('<warning>Type "%s" is not supported (yet) for relation(%d).</warning>', $object->tags->type, $object->id); // @phpstan-ignore property.nonObject
                     break;
             }
 

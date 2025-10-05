@@ -135,5 +135,7 @@ abstract class AbstractCommand extends Command
         // Read configuration.
         $configArray = require $configPath;
         $this->config = new Config($configArray);
+
+        return Command::SUCCESS;
     }
 }
