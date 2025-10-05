@@ -475,12 +475,12 @@ class GeoJSONCommand extends AbstractCommand
         if (isset($genderEtymology, $detailsEtymology)) {
             // If `name:etymology:wikidata` tag is set, use it to extract details and determine gender.
             $properties->source = 'wikidata';
-            $properties->gender = $genderEtymology;
+            $properties->gender = $genderEtymology ? $genderEtymology : null; // @phpstan-ignore ternary.condNotBoolean
             $properties->details = $detailsEtymology;
         } elseif (isset($genderWikidata, $detailsWikidata)) {
             // If `P138` (NamedAfter) property is set, use it to extract details and determine gender.
             $properties->source = 'wikidata';
-            $properties->gender = $genderWikidata;
+            $properties->gender = $genderWikidata ? $genderWikidata : null; // @phpstan-ignore ternary.condNotBoolean
             $properties->details = $detailsWikidata;
         } elseif (!is_null($details = $this->extractDetailsFromCSV($object, $warnings))) {
             // If relation/way is defined in CSV file, use it to extract details and determine gender.
