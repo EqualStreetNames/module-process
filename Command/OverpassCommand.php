@@ -117,14 +117,11 @@ class OverpassCommand extends AbstractCommand
                 }
 
                 // Retry on 504 Gateway Timeout
-                if ($response && $response->getStatusCode() == 504) {
+                if ($response && $response->getStatusCode() === 504) {
                     return true;
                 }
 
                 return false;
-            },
-            function ($retries) {
-                return pow(2, $retries) * 1000;
             }
         );
 
