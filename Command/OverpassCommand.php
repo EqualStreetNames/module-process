@@ -122,9 +122,6 @@ class OverpassCommand extends AbstractCommand
                 }
 
                 return false;
-            },
-            function ($retries) {
-                return pow(2, $retries) * 1000;
             }
         );
 
