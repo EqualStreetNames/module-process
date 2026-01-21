@@ -174,9 +174,9 @@ class GeoJSONCommand extends AbstractCommand
             if (count($geojsonW->features) === 0) {
                 $output->writeln('<warning>No way feature.</warning>');
             }
-            if (count($geojsonR->features) === 0 && count($geojsonW->features) === 0) {
-                throw new GeoJSONException('No feature at all!');
-            }
+            // if (count($geojsonR->features) === 0 && count($geojsonW->features) === 0) {
+            //     throw new GeoJSONException('No feature at all!');
+            // }
 
             // Store consolidated GeoJSON files.
             file_put_contents(
