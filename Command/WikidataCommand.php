@@ -10,6 +10,8 @@ use App\Wikidata\Wikidata;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -189,12 +191,34 @@ class WikidataCommand extends AbstractCommand
     {
         $url = sprintf('%s%s.json', self::URL, $identifier);
 
+        $retryMiddleware = Middleware::retry(
+            function ($retries, $request, $response, $exception) {
+                // Stop retrying after 3 attempts
+                if ($retries >= 3) {
+                    return false;
+                }
+
+                // Retry on 504 Gateway Timeout
+                if ($response && $response->getStatusCode() == 429) {
+                    return true;
+                }
+
+                return false;
+            },
+            function ($retries) {
+                return pow(2, $retries) * 1000;
+            }
+        );
+
+        $stack = HandlerStack::create();
+        $stack->push($retryMiddleware);
+
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = new \GuzzleHttp\Client(['handler' => $stack]);
             $client->request('GET', $url, [
                 'headers' => [
-                    'User-Agent' => 'EqualStreetNames (https://equalstreetnames.org)',
                     'Accept' => 'application/json',
+                    'User-Agent' => 'EqualStreetNames (+https://equalstreetnames.org)',
                 ],
                 'sink' => $path,
             ]);
