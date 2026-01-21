@@ -163,29 +163,33 @@ class StatisticsCommand extends AbstractCommand
             // Display statistics
             $total = $genders['F'] + $genders['M'] + $genders['FX'] + $genders['MX'] + $genders['X'] + $genders['NB'] + $genders['+'] + $genders['?'];
 
-            $output->writeln([
-                sprintf('Person: %d', $total),
-                sprintf('  Female (cis): %d (%.2f %%)', $genders['F'], $genders['F'] / $total * 100),
-                sprintf('  Male (cis): %d (%.2f %%)', $genders['M'], $genders['M'] / $total * 100),
-                sprintf('  Female (trans): %d (%.2f %%)', $genders['FX'], $genders['FX'] / $total * 100),
-                sprintf('  Male (trans): %d (%.2f %%)', $genders['MX'], $genders['MX'] / $total * 100),
-                sprintf('  Intersex: %d (%.2f %%)', $genders['X'], $genders['X'] / $total * 100),
-                sprintf('  Non-Binary: %d (%.2f %%)', $genders['NB'], $genders['NB'] / $total * 100),
-                sprintf('  Multiple: %d (%.2f %%)', $genders['+'], $genders['+'] / $total * 100),
-                sprintf('  Unknown: %d (%.2f %%)', $genders['?'], $genders['?'] / $total * 100),
-                sprintf('Not a person: %d', $genders['-']),
-            ]);
+            if ($total > 0) {
+                $output->writeln([
+                    sprintf('Person: %d', $total),
+                    sprintf('  Female (cis): %d (%.2f %%)', $genders['F'], $genders['F'] / $total * 100),
+                    sprintf('  Male (cis): %d (%.2f %%)', $genders['M'], $genders['M'] / $total * 100),
+                    sprintf('  Female (trans): %d (%.2f %%)', $genders['FX'], $genders['FX'] / $total * 100),
+                    sprintf('  Male (trans): %d (%.2f %%)', $genders['MX'], $genders['MX'] / $total * 100),
+                    sprintf('  Intersex: %d (%.2f %%)', $genders['X'], $genders['X'] / $total * 100),
+                    sprintf('  Non-Binary: %d (%.2f %%)', $genders['NB'], $genders['NB'] / $total * 100),
+                    sprintf('  Multiple: %d (%.2f %%)', $genders['+'], $genders['+'] / $total * 100),
+                    sprintf('  Unknown: %d (%.2f %%)', $genders['?'], $genders['?'] / $total * 100),
+                    sprintf('Not a person: %d', $genders['-']),
+                ]);
 
-            $output->writeln('');
+                $output->writeln('');
 
-            $output->writeln([
-                'Sources:',
-                sprintf('  Wikidata: %d (%.2f %%)', $sources['wikidata'], $sources['wikidata'] / $total * 100),
-                sprintf('  CSV: %d (%.2f %%)', $sources['csv'], $sources['csv'] / $total * 100),
-                sprintf('  Configuration: %d (%.2f %%)', $sources['config'], $sources['config'] / $total * 100),
-                // sprintf('  Event (Brussels only): %d (%.2f %%)', $sources['event'], $sources['event'] / $total * 100),
-                sprintf('No source: %d', $sources['-']),
-            ]);
+                $output->writeln([
+                    'Sources:',
+                    sprintf('  Wikidata: %d (%.2f %%)', $sources['wikidata'], $sources['wikidata'] / $total * 100),
+                    sprintf('  CSV: %d (%.2f %%)', $sources['csv'], $sources['csv'] / $total * 100),
+                    sprintf('  Configuration: %d (%.2f %%)', $sources['config'], $sources['config'] / $total * 100),
+                    // sprintf('  Event (Brussels only): %d (%.2f %%)', $sources['event'], $sources['event'] / $total * 100),
+                    sprintf('No source: %d', $sources['-']),
+                ]);
+            } else {
+                $output->writeln('No street related to a person found.');
+            }
 
             return Command::SUCCESS;
         } catch (Exception $error) {
