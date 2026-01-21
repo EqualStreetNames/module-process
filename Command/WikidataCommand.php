@@ -199,7 +199,7 @@ class WikidataCommand extends AbstractCommand
                 }
 
                 // Retry on 504 Gateway Timeout
-                if ($response && $response->getStatusCode() == 429) {
+                if ($response && $response->getStatusCode() === 429) {
                     return true;
                 }
 
