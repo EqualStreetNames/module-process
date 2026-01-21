@@ -6,6 +6,8 @@ use App\Exception\FileException;
 use ErrorException;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputInterface;
@@ -107,9 +109,35 @@ class OverpassCommand extends AbstractCommand
      */
     private static function save(string $query, string $path): void
     {
-        $url = sprintf('%s?data=%s', self::URL, urlencode($query));
+        $retryMiddleware = Middleware::retry(
+            function ($retries, $request, $response, $exception) {
+                // Stop retrying after 3 attempts
+                if ($retries >= 3) {
+                    return false;
+                }
 
-        $client = new \GuzzleHttp\Client();
-        $client->request('GET', $url, ['sink' => $path]);
+                // Retry on 504 Gateway Timeout
+                if ($response && $response->getStatusCode() >= 504) {
+                    return true;
+                }
+
+                return false;
+            },
+            function ($retries) {
+                return pow(2, $retries) * 1000;
+            }
+        );
+
+        $stack = HandlerStack::create();
+        $stack->push($retryMiddleware);
+
+        $client = new \GuzzleHttp\Client(['handler' => $stack]);
+        $client->request('POST', self::URL, [
+            'body' => sprintf('data=%s', urlencode($query)),
+            'headers' => [
+                'User-Agent' => 'EqualStreetNames (+https://equalstreetnames.org/)',
+            ],
+            'sink' => $path,
+        ]);
     }
 }
