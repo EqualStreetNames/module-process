@@ -134,6 +134,10 @@ class WikidataCommand extends AbstractCommand
                     $path = sprintf('%s/%s.json', $outputDir, $wikidataTag);
                     self::save($wikidataTag, $element, $path, $warnings);
 
+                    if (!file_exists($path) || !is_readable($path)) {
+                        continue;
+                    }
+
                     $entity = Wikidata::read($path);
 
                     $identifiers = Wikidata::extractNamedAfter($entity);
