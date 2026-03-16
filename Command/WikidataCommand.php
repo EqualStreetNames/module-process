@@ -57,6 +57,9 @@ class WikidataCommand extends AbstractCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
+            // Wikidata processing may need to decode large Overpass JSON files.
+            ini_set('memory_limit', '512M');
+
             parent::execute($input, $output);
 
             $relationPath = sprintf('%s/overpass/%s', self::OUTPUTDIR, OverpassCommand::FILENAME_RELATION);
@@ -68,18 +71,10 @@ class WikidataCommand extends AbstractCommand
                 throw new FileException(sprintf('File "%s" doesn\'t exist or is not readable. You maybe need to run "overpass" command first.', $wayPath));
             }
 
-            $contentR = file_get_contents($relationPath);
-            /** @var Overpass|null */ $overpassR = $contentR !== false ? json_decode($contentR) : null;
-            $contentW = file_get_contents($wayPath);
-            /** @var Overpass|null */ $overpassW = $contentW !== false ? json_decode($contentW) : null;
-
-            // Only keep ways/relations that have a `wikidata` tag and/or a `name:etymology:wikidata` tag
-            $elements = array_filter(
-                array_merge($overpassR->elements ?? [], $overpassW->elements ?? []),
-                function ($element): bool {
-                    return isset($element->tags) &&
-                        (isset($element->tags->wikidata) || isset($element->tags->{'name:etymology:wikidata'})); // @phpstan-ignore property.notFound,property.notFound
-                }
+            // Decode large Overpass files one by one to avoid keeping both payloads in memory.
+            $elements = array_merge(
+                self::extractElementsWithWikidata($relationPath),
+                self::extractElementsWithWikidata($wayPath)
             );
 
             // Check count of elements with Wikidata information.
@@ -168,6 +163,42 @@ class WikidataCommand extends AbstractCommand
     }
 
     /**
+     * Read an Overpass JSON result and keep only elements with Wikidata-related tags.
+     *
+     * @param string $path
+     * @return Element[]
+     */
+    private static function extractElementsWithWikidata(string $path): array
+    {
+        $content = file_get_contents($path);
+        if ($content === false) {
+            return [];
+        }
+
+        /** @var Overpass|null */
+        $overpass = json_decode($content);
+
+        // Release the raw JSON string before filtering to reduce peak memory usage.
+        unset($content);
+
+        $elements = array_values(array_filter(
+            $overpass->elements ?? [],
+            function ($element): bool {
+                return isset($element->tags) &&
+                    (isset($element->tags->wikidata) || isset($element->tags->{'name:etymology:wikidata'})); // @phpstan-ignore property.notFound,property.notFound
+            }
+        ));
+
+        unset($overpass);
+
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+
+        return $elements;
+    }
+
+    /**
      * Send request and store result.
      * Display warning if the Wikidata item doesn't exist or if the process can't download the Wikidate item.
      * @see https://www.mediawiki.org/wiki/Wikibase/EntityData
@@ -229,7 +260,6 @@ class WikidataCommand extends AbstractCommand
                     $warnings[] = sprintf('<warning>Error while fetching Wikidata item %s for %s(%d): %s.</warning>', $identifier, $element->type, $element->id, $exception->getMessage());
                     break;
             }
-            print_r($warnings);
         }
     }
 }
