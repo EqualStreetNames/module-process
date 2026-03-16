@@ -78,7 +78,7 @@ class WikidataCommand extends AbstractCommand
                 array_merge($overpassR->elements ?? [], $overpassW->elements ?? []),
                 function ($element): bool {
                     return isset($element->tags) &&
-                        (isset($element->tags->wikidata) || isset($element->tags->{'name:etymology:wikidata'})); // @phpstan-ignore property.notFound,property.notFound,property.dynamicName
+                        (isset($element->tags->wikidata) || isset($element->tags->{'name:etymology:wikidata'})); // @phpstan-ignore property.notFound,property.notFound
                 }
             );
 
@@ -102,7 +102,7 @@ class WikidataCommand extends AbstractCommand
                 /** @var string|null */
                 $wikidataTag = $element->tags->wikidata ?? null; // @phpstan-ignore property.notFound
                 /** @var string|null */
-                $etymologyTag = $element->tags->{'name:etymology:wikidata'} ?? null; // @phpstan-ignore property.notFound,property.dynamicName
+                $etymologyTag = $element->tags->{'name:etymology:wikidata'} ?? null; // @phpstan-ignore property.notFound
 
                 // Download Wikidata item(s) defined in `name:etymology:wikidata` tag
                 if (!is_null($etymologyTag) && $etymologyTag !== $wikidataTag) {
