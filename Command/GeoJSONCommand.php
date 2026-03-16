@@ -73,6 +73,9 @@ class GeoJSONCommand extends AbstractCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
+            // Large cities may produce heavy Overpass payloads for GeoJSON generation.
+            ini_set('memory_limit', '-1');
+
             parent::execute($input, $output);
 
             // Process CSV file from event - Brussels only.
@@ -131,22 +134,39 @@ class GeoJSONCommand extends AbstractCommand
                 throw new FileException(sprintf('File "%s" doesn\'t exist or is not readable. You maybe need to run "overpass" command first.', $wayPath));
             }
 
-            // Read Overpass queries result.
+            // Read and process relation payload first, then free memory before loading ways.
             $contentR = file_get_contents($relationPath);
-            /** @var Overpass */ $overpassR = $contentR !== false ? json_decode($contentR) : null;
-            $contentW = file_get_contents($wayPath);
-            /** @var Overpass */ $overpassW = $contentW !== false ? json_decode($contentW) : null;
+            /** @var Overpass|null */ $overpassR = $contentR !== false ? json_decode($contentR) : null;
+            unset($contentR);
 
-            // Generate consolidated GeoJSON files (OpenStreetMap + Wikidata).
+            // Generate consolidated GeoJSON for relations.
             $output->write('Relations: ');
             $geojsonR = $this->createGeoJSON('relation', $overpassR->elements ?? [], $output);
-            $output->write('Ways: ');
-            $geojsonW = $this->createGeoJSON('way', $overpassW->elements ?? [], $output);
 
-            // Filter out ways that are already relation members.
+            // Keep relation member way identifiers before releasing relation payload.
             $waysInRelation = array_map(function ($element): int {
                 return $element->id;
             }, self::extractElements('way', $overpassR->elements ?? []));
+
+            unset($overpassR);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+
+            // Read and process way payload after relation payload is released.
+            $contentW = file_get_contents($wayPath);
+            /** @var Overpass|null */ $overpassW = $contentW !== false ? json_decode($contentW) : null;
+            unset($contentW);
+
+            $output->write('Ways: ');
+            $geojsonW = $this->createGeoJSON('way', $overpassW->elements ?? [], $output);
+
+            unset($overpassW);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+
+            // Filter out ways that are already relation members.
             $features = array_filter($geojsonW->features, function (Feature $feature) use ($waysInRelation): bool {
                 return !in_array($feature->id, $waysInRelation, true);
             });

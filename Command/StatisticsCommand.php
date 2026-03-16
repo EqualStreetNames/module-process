@@ -56,6 +56,9 @@ class StatisticsCommand extends AbstractCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
+            // Large city GeoJSON payloads can exceed the default CLI memory limit.
+            ini_set('memory_limit', '-1');
+
             parent::execute($input, $output);
 
             // Check path of relations GeoJSON file.
@@ -71,13 +74,12 @@ class StatisticsCommand extends AbstractCommand
 
             $streets = [];
 
-            // Read GeoJSON files.
+            // Read relation GeoJSON first, then release memory before loading ways.
             $contentR = file_get_contents($relationPath);
             /** @var FeatureCollection|null */ $relations = $contentR !== false ? json_decode($contentR) : null;
-            $contentW = file_get_contents($wayPath);
-            /** @var FeatureCollection|null */ $ways = $contentW !== false ? json_decode($contentW) : null;
+            unset($contentR);
 
-            // Extract necesarry data
+            // Extract necessary data from relations.
             if (!is_null($relations)) {
                 foreach ($relations->features as $feature) {
                     $street = self::extract($feature);
@@ -86,6 +88,18 @@ class StatisticsCommand extends AbstractCommand
                     $streets[] = $street;
                 }
             }
+
+            unset($relations);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+
+            // Read ways GeoJSON after relation payload has been released.
+            $contentW = file_get_contents($wayPath);
+            /** @var FeatureCollection|null */ $ways = $contentW !== false ? json_decode($contentW) : null;
+            unset($contentW);
+
+            // Extract necessary data from ways.
             if (!is_null($ways)) {
                 foreach ($ways->features as $feature) {
                     $street = self::extract($feature);
@@ -93,6 +107,11 @@ class StatisticsCommand extends AbstractCommand
 
                     $streets[] = $street;
                 }
+            }
+
+            unset($ways);
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
             }
 
             // Group by streetname
