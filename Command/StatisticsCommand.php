@@ -57,7 +57,7 @@ class StatisticsCommand extends AbstractCommand
     {
         try {
             // Large city GeoJSON payloads can exceed the default CLI memory limit.
-            ini_set('memory_limit', '512M');
+            ini_set('memory_limit', '-1');
 
             parent::execute($input, $output);
 

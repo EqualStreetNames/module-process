@@ -74,7 +74,7 @@ class GeoJSONCommand extends AbstractCommand
     {
         try {
             // Large cities may produce heavy Overpass payloads for GeoJSON generation.
-            ini_set('memory_limit', '512M');
+            ini_set('memory_limit', '-1');
 
             parent::execute($input, $output);
 

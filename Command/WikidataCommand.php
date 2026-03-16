@@ -58,7 +58,7 @@ class WikidataCommand extends AbstractCommand
     {
         try {
             // Wikidata processing may need to decode large Overpass JSON files.
-            ini_set('memory_limit', '512M');
+            ini_set('memory_limit', '-1');
 
             parent::execute($input, $output);
 
