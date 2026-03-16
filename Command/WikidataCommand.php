@@ -12,6 +12,7 @@ use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -32,6 +33,18 @@ class WikidataCommand extends AbstractCommand
 
     /** @var string Wikidata item URL. */
     protected const URL = 'https://www.wikidata.org/wiki/Special:EntityData/';
+
+    /** @var int Minimum delay between Wikidata requests in microseconds. */
+    protected const REQUEST_INTERVAL_MICROSECONDS = 200000;
+
+    /** @var int Maximum number of retries after the initial request. */
+    protected const MAX_RETRIES = 4;
+
+    /** @var int Default retry delay in milliseconds when Wikidata does not provide one. */
+    protected const DEFAULT_RETRY_DELAY_MILLISECONDS = 1000;
+
+    /** @var float|null Timestamp of the last outgoing Wikidata request. */
+    private static ?float $lastRequestAt = null;
 
     /**
      * {@inheritdoc}
@@ -127,9 +140,7 @@ class WikidataCommand extends AbstractCommand
 
                     // Download Wikidata item
                     $path = sprintf('%s/%s.json', $outputDir, $wikidataTag);
-                    self::save($wikidataTag, $element, $path, $warnings);
-
-                    if (!file_exists($path) || !is_readable($path)) {
+                    if (!self::save($wikidataTag, $element, $path, $warnings)) {
                         continue;
                     }
 
@@ -211,31 +222,30 @@ class WikidataCommand extends AbstractCommand
      * @param Element $element OpenStreetMap element (relation/way/node).
      * @param string $path Path where to store the result.
      * @param string[] $warnings
-     * @return void
-     *
-     * @throws GuzzleException
+     * @return bool True when the file is available locally after the call.
      */
-    private static function save(string $identifier, $element, string $path, array &$warnings = []): void
+    private static function save(string $identifier, $element, string $path, array &$warnings = []): bool
     {
-        if (file_exists($path)) {
-            return;
+        if (file_exists($path) && is_readable($path)) {
+            return true;
         }
 
         $url = sprintf('%s%s.json', self::URL, $identifier);
 
         $retryMiddleware = Middleware::retry(
             function ($retries, $request, $response, $exception) {
-                // Stop retrying after 3 attempts
-                if ($retries >= 3) {
+                if ($retries >= self::MAX_RETRIES) {
                     return false;
                 }
 
-                // Retry on 429 Too Many Requests
                 if ($response && $response->getStatusCode() === 429) {
                     return true;
                 }
 
                 return false;
+            },
+            function ($retries, ?ResponseInterface $response = null): int {
+                return self::retryDelayMilliseconds($retries, $response);
             }
         );
 
@@ -243,18 +253,22 @@ class WikidataCommand extends AbstractCommand
         $stack->push($retryMiddleware);
 
         try {
+            self::throttleRequests();
+
             $client = new \GuzzleHttp\Client(['handler' => $stack]);
             $client->request('GET', $url, [
                 'headers' => [
                     'Accept' => 'application/json',
                     'User-Agent' => 'EqualStreetNames (+https://equalstreetnames.org)',
                 ],
+                'connect_timeout' => 10,
                 'sink' => $path,
+                'timeout' => 30,
             ]);
+
+            return true;
         } catch (BadResponseException $exception) {
-            if (file_exists($path)) {
-                unlink($path);
-            }
+            self::cleanupPartialDownload($path);
 
             switch ($exception->getResponse()->getStatusCode()) {
                 case 404:
@@ -264,6 +278,70 @@ class WikidataCommand extends AbstractCommand
                     $warnings[] = sprintf('<warning>Error while fetching Wikidata item %s for %s(%d): %s.</warning>', $identifier, $element->type, $element->id, $exception->getMessage());
                     break;
             }
+        } catch (GuzzleException $exception) {
+            self::cleanupPartialDownload($path);
+            $warnings[] = sprintf('<warning>Error while fetching Wikidata item %s for %s(%d): %s.</warning>', $identifier, $element->type, $element->id, $exception->getMessage());
+        }
+
+        return false;
+    }
+
+    /**
+     * Slow down outbound requests so Wikidata is less likely to rate-limit the process.
+     *
+     * @return void
+     */
+    private static function throttleRequests(): void
+    {
+        if (self::$lastRequestAt !== null) {
+            $elapsedMicroseconds = (int) round((microtime(true) - self::$lastRequestAt) * 1000000);
+            $sleepMicroseconds = self::REQUEST_INTERVAL_MICROSECONDS - $elapsedMicroseconds;
+
+            if ($sleepMicroseconds > 0) {
+                usleep($sleepMicroseconds);
+            }
+        }
+
+        self::$lastRequestAt = microtime(true);
+    }
+
+    /**
+     * Compute retry delay using Wikidata's Retry-After header when available.
+     *
+     * @param int $retries Current retry count.
+     * @param ResponseInterface|null $response
+     * @return int
+     */
+    private static function retryDelayMilliseconds(int $retries, ?ResponseInterface $response = null): int
+    {
+        if ($response !== null) {
+            $retryAfter = $response->getHeaderLine('Retry-After');
+
+            if ($retryAfter !== '') {
+                if (ctype_digit($retryAfter)) {
+                    return max((int) $retryAfter * 1000, self::DEFAULT_RETRY_DELAY_MILLISECONDS);
+                }
+
+                $retryAt = strtotime($retryAfter);
+                if ($retryAt !== false) {
+                    return max(($retryAt - time()) * 1000, self::DEFAULT_RETRY_DELAY_MILLISECONDS);
+                }
+            }
+        }
+
+        return self::DEFAULT_RETRY_DELAY_MILLISECONDS * $retries;
+    }
+
+    /**
+     * Remove partial files left behind after failed requests.
+     *
+     * @param string $path
+     * @return void
+     */
+    private static function cleanupPartialDownload(string $path): void
+    {
+        if (file_exists($path)) {
+            unlink($path);
         }
     }
 }
