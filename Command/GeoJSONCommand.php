@@ -368,8 +368,8 @@ class GeoJSONCommand extends AbstractCommand
         $properties->details = null;
 
         // Try to extract information from `name:etymology:wikidata` tag in OpenStreetMap
-        if (isset($object->tags->{'name:etymology:wikidata'})) { // @phpstan-ignore property.notFound,property.dynamicName
-            $idsEtymology = explode(';', $object->tags->{'name:etymology:wikidata'}); // @phpstan-ignore property.dynamicName
+        if (isset($object->tags->{'name:etymology:wikidata'})) { // @phpstan-ignore property.notFound
+            $idsEtymology = explode(';', $object->tags->{'name:etymology:wikidata'});
             $idsEtymology = array_map('trim', $idsEtymology);
 
             $detailsEtymology = [];
