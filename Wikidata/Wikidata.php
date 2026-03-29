@@ -182,12 +182,18 @@ class Wikidata
                 return 'F';
 
             case 'Q1052281': // female (trans)
+            case 'Q121307100': // female (intersex)
+            case 'Q138806923': // female (trans)
                 return 'FX';
 
             case 'Q2449503': // male (trans)
+            case 'Q121307094': // male (intersex)
+            case 'Q138806924': // male (trans)
                 return 'MX';
 
             case 'Q1097630': // intersex
+            case 'Q11287467': // intersex
+            case 'Q138806932': // intersex
                 return 'X';
 
             case 'Q48270': // non-binary
